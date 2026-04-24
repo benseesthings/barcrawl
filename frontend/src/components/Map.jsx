@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { GoogleMap, useJsApiLoader, Polyline, Marker, InfoWindow } from '@react-google-maps/api'
+import { GoogleMap, Polyline, Marker, InfoWindow } from '@react-google-maps/api'
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' }
 const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 }
@@ -53,11 +53,7 @@ const POLYLINE_OPTIONS = {
   strokeOpacity: 0.85,
 }
 
-export default function Map({ route, bars, selectedBar, onBarSelect }) {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  })
-
+export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect }) {
   const mapRef = useRef(null)
   const routePath = route ? decodePolyline(route.polyline) : []
 

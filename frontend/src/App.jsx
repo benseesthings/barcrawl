@@ -1,6 +1,10 @@
 import { useState } from 'react'
+import { useJsApiLoader } from '@react-google-maps/api'
 import Sidebar from './components/Sidebar'
 import Map from './components/Map'
+
+// Defined outside the component so the array reference is stable across renders.
+const LIBRARIES = ['places']
 
 // Minimal polyline decoder — used only for route-order sorting.
 function decodePolyline(encoded) {
@@ -34,6 +38,11 @@ function sortBarsByRouteOrder(bars, polyline) {
 }
 
 export default function App() {
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: LIBRARIES,
+  })
+
   const [route, setRoute] = useState(null)   // { polyline, distance, duration }
   const [bars, setBars] = useState([])
   const [selectedBar, setSelectedBar] = useState(null)
@@ -55,6 +64,7 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       <Sidebar
+        isLoaded={isLoaded}
         route={route}
         bars={bars}
         selectedBar={selectedBar}
@@ -63,6 +73,7 @@ export default function App() {
         onBarSelect={setSelectedBar}
       />
       <Map
+        isLoaded={isLoaded}
         route={route}
         bars={bars}
         selectedBar={selectedBar}

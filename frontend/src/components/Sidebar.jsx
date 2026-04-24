@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { Autocomplete } from '@react-google-maps/api'
 
 const API = 'http://localhost:8000'
+
+const INPUT_CLASS =
+  'w-full bg-gray-800 text-white text-sm px-3 py-2 rounded-lg border border-gray-600 focus:border-amber-400 focus:outline-none placeholder-gray-500'
 
 function PriceLevel({ level }) {
   if (level == null) return null
@@ -35,6 +39,7 @@ function Spinner() {
 }
 
 export default function Sidebar({
+  isLoaded,
   route,
   bars,
   selectedBar,
@@ -47,6 +52,20 @@ export default function Sidebar({
   const [loadingRoute, setLoadingRoute] = useState(false)
   const [loadingBars, setLoadingBars] = useState(false)
   const [error, setError] = useState('')
+
+  // Autocomplete instance refs
+  const acOrigin = useRef(null)
+  const acDest = useRef(null)
+
+  const onOriginPlaceChanged = () => {
+    const place = acOrigin.current?.getPlace()
+    if (place) setOrigin(place.formatted_address || place.name || '')
+  }
+
+  const onDestPlaceChanged = () => {
+    const place = acDest.current?.getPlace()
+    if (place) setDestination(place.formatted_address || place.name || '')
+  }
 
   const handlePlanRoute = async () => {
     if (!origin.trim() || !destination.trim()) return
@@ -106,25 +125,55 @@ export default function Sidebar({
           <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide">
             From
           </label>
-          <input
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g. Times Square, NYC"
-            className="w-full bg-gray-800 text-white text-sm px-3 py-2 rounded-lg border border-gray-600 focus:border-amber-400 focus:outline-none placeholder-gray-500"
-          />
+          {isLoaded ? (
+            <Autocomplete
+              onLoad={(ac) => { acOrigin.current = ac }}
+              onPlaceChanged={onOriginPlaceChanged}
+            >
+              <input
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. Times Square, NYC"
+                className={INPUT_CLASS}
+              />
+            </Autocomplete>
+          ) : (
+            <input
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Times Square, NYC"
+              className={INPUT_CLASS}
+            />
+          )}
         </div>
         <div className="space-y-2">
           <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide">
             To
           </label>
-          <input
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g. Madison Square Park, NYC"
-            className="w-full bg-gray-800 text-white text-sm px-3 py-2 rounded-lg border border-gray-600 focus:border-amber-400 focus:outline-none placeholder-gray-500"
-          />
+          {isLoaded ? (
+            <Autocomplete
+              onLoad={(ac) => { acDest.current = ac }}
+              onPlaceChanged={onDestPlaceChanged}
+            >
+              <input
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. Madison Square Park, NYC"
+                className={INPUT_CLASS}
+              />
+            </Autocomplete>
+          ) : (
+            <input
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Madison Square Park, NYC"
+              className={INPUT_CLASS}
+            />
+          )}
         </div>
         <button
           onClick={handlePlanRoute}
