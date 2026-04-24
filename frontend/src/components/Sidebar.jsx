@@ -56,15 +56,18 @@ export default function Sidebar({
   // Autocomplete instance refs
   const acOrigin = useRef(null)
   const acDest = useRef(null)
+  // Input DOM refs — used to read the display text Google places in the field
+  const originInputRef = useRef(null)
+  const destInputRef = useRef(null)
 
   const onOriginPlaceChanged = () => {
-    const place = acOrigin.current?.getPlace()
-    if (place) setOrigin(place.formatted_address || place.name || '')
+    const displayText = originInputRef.current?.value
+    if (displayText) setOrigin(displayText)
   }
 
   const onDestPlaceChanged = () => {
-    const place = acDest.current?.getPlace()
-    if (place) setDestination(place.formatted_address || place.name || '')
+    const displayText = destInputRef.current?.value
+    if (displayText) setDestination(displayText)
   }
 
   const handlePlanRoute = async () => {
@@ -131,6 +134,7 @@ export default function Sidebar({
               onPlaceChanged={onOriginPlaceChanged}
             >
               <input
+                ref={originInputRef}
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -140,6 +144,7 @@ export default function Sidebar({
             </Autocomplete>
           ) : (
             <input
+              ref={originInputRef}
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -158,6 +163,7 @@ export default function Sidebar({
               onPlaceChanged={onDestPlaceChanged}
             >
               <input
+                ref={destInputRef}
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -167,6 +173,7 @@ export default function Sidebar({
             </Autocomplete>
           ) : (
             <input
+              ref={destInputRef}
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               onKeyDown={handleKeyDown}
