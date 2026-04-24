@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { GoogleMap, Polyline, Marker, InfoWindow } from '@react-google-maps/api'
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' }
-const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 }
+const DEFAULT_CENTER = { lat: 37.7749, lng: -122.4194 }
 const DEFAULT_ZOOM = 13
 
 // Decode a Google-encoded polyline string into [{lat, lng}] path.

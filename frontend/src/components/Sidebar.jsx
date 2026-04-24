@@ -134,7 +134,7 @@ export default function Sidebar({
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="e.g. Times Square, NYC"
+                placeholder="e.g. Painted Ladies, SF"
                 className={INPUT_CLASS}
               />
             </Autocomplete>
@@ -143,7 +143,7 @@ export default function Sidebar({
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g. Times Square, NYC"
+              placeholder="e.g. Painted Ladies, SF"
               className={INPUT_CLASS}
             />
           )}
@@ -161,7 +161,7 @@ export default function Sidebar({
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="e.g. Madison Square Park, NYC"
+                placeholder="e.g. Marina Green, SF"
                 className={INPUT_CLASS}
               />
             </Autocomplete>
@@ -170,7 +170,7 @@ export default function Sidebar({
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g. Madison Square Park, NYC"
+              placeholder="e.g. Marina Green, SF"
               className={INPUT_CLASS}
             />
           )}
