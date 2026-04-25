@@ -166,6 +166,4 @@ async def get_bars(request: BarsRequest):
                     }
                 )
 
-    # Sort by rating descending, then alphabetically
-    bars.sort(key=lambda b: (-(b["rating"] or 0), b["name"]))
     return {"bars": bars}

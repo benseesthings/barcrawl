@@ -42,11 +42,14 @@ export default function Sidebar({
   isLoaded,
   route,
   bars,
+  crawlBars,
   selectedBar,
   onRouteFound,
   onRouteClear,
   onBarsFound,
   onBarSelect,
+  onAddToCrawl,
+  onRemoveFromCrawl,
 }) {
   const [origin, setOrigin] = useState('')
   const [destination, setDestination] = useState('')
@@ -54,15 +57,12 @@ export default function Sidebar({
   const [loadingStatus, setLoadingStatus] = useState('')
   const [error, setError] = useState('')
 
-  // Clear route whenever either input changes
   useEffect(() => {
     onRouteClear()
   }, [origin, destination]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Autocomplete instance refs
   const acOrigin = useRef(null)
   const acDest = useRef(null)
-  // Input DOM refs — used to read the display text Google places in the field
   const originInputRef = useRef(null)
   const destInputRef = useRef(null)
 
@@ -110,6 +110,20 @@ export default function Sidebar({
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handlePlanRoute()
+  }
+
+  const crawlIds = new Set(crawlBars.map((b) => b.place_id))
+  const candidateBars = bars.filter((b) => !crawlIds.has(b.place_id))
+
+  const handleExport = () => {
+    const waypoints = crawlBars.map((b) => `${b.lat},${b.lng}`).join('|')
+    const url = new URL('https://www.google.com/maps/dir/')
+    url.searchParams.set('api', '1')
+    url.searchParams.set('origin', origin.trim())
+    url.searchParams.set('destination', destination.trim())
+    url.searchParams.set('waypoints', waypoints)
+    url.searchParams.set('travelmode', 'walking')
+    window.open(url.toString(), '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -196,66 +210,154 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Bar list */}
+      {/* Scrollable bar lists */}
       {bars.length > 0 && (
         <div className="flex-1 overflow-y-auto">
-          <div className="px-4 pt-4 pb-2">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Crawl Stops — {bars.length} bar{bars.length !== 1 ? 's' : ''}
-            </h2>
-            {route && (
-              <p className="text-xs text-gray-500 mt-1">
-                {route.distance} · {route.duration} walking
-              </p>
-            )}
-          </div>
-          <ul className="px-3 pb-4 space-y-1">
-            {bars.map((bar, idx) => {
-              const isSelected = selectedBar?.place_id === bar.place_id
-              return (
-                <li key={bar.place_id}>
+
+          {/* Your Crawl */}
+          {crawlBars.length > 0 && (
+            <div>
+              <div className="px-4 pt-4 pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+                    Your Crawl — {crawlBars.length} stop{crawlBars.length !== 1 ? 's' : ''}
+                  </h2>
                   <button
-                    onClick={() => onBarSelect(isSelected ? null : bar)}
-                    className={`w-full text-left px-3 py-3 rounded-xl transition-all border ${
-                      isSelected
-                        ? 'bg-amber-500/15 border-amber-500/40 shadow-sm'
-                        : 'bg-gray-800/60 border-transparent hover:bg-gray-700/60 hover:border-gray-600'
-                    }`}
+                    onClick={handleExport}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-md bg-emerald-600 hover:bg-emerald-500 text-white transition-colors whitespace-nowrap"
+                    title="Open in Google Maps"
                   >
-                    <div className="flex items-start gap-2.5">
-                      <span
-                        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${
-                          isSelected ? 'bg-amber-500 text-white' : 'bg-gray-700 text-amber-400'
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                    Export to Maps
+                  </button>
+                </div>
+              </div>
+              <ul className="px-3 pb-2 space-y-1">
+                {crawlBars.map((bar, idx) => {
+                  const isSelected = selectedBar?.place_id === bar.place_id
+                  return (
+                    <li key={bar.place_id}>
+                      <div
+                        className={`w-full text-left px-3 py-3 rounded-xl border ${
+                          isSelected
+                            ? 'bg-amber-500/15 border-amber-500/40 shadow-sm'
+                            : 'bg-gray-800/60 border-transparent'
                         }`}
                       >
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-medium leading-snug truncate">
-                          {bar.name}
-                        </p>
-                        {bar.vicinity && (
-                          <p className="text-gray-500 text-xs truncate mt-0.5">{bar.vicinity}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <StarRating rating={bar.rating} />
-                          <PriceLevel level={bar.price_level} />
+                        <div className="flex items-start gap-2.5">
+                          <button
+                            onClick={() => onBarSelect(isSelected ? null : bar)}
+                            className="flex items-start gap-2.5 flex-1 min-w-0 text-left"
+                          >
+                            <span
+                              className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${
+                                isSelected ? 'bg-amber-500 text-white' : 'bg-orange-500 text-white'
+                              }`}
+                            >
+                              {idx + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-sm font-medium leading-snug truncate">
+                                {bar.name}
+                              </p>
+                              {bar.vicinity && (
+                                <p className="text-gray-500 text-xs truncate mt-0.5">{bar.vicinity}</p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <StarRating rating={bar.rating} />
+                                <PriceLevel level={bar.price_level} />
+                              </div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => onRemoveFromCrawl(bar)}
+                            className="flex-shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                            title="Remove from crawl"
+                          >
+                            ×
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+                    </li>
+                  )
+                })}
+              </ul>
+              {candidateBars.length > 0 && (
+                <div className="mx-4 border-t border-gray-700/60 mb-1" />
+              )}
+            </div>
+          )}
+
+          {/* Nearby Bars */}
+          {candidateBars.length > 0 && (
+            <div>
+              <div className="px-4 pt-3 pb-2">
+                <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Nearby Bars — {candidateBars.length} bar{candidateBars.length !== 1 ? 's' : ''}
+                </h2>
+                {route && crawlBars.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {route.distance} · {route.duration} walking
+                  </p>
+                )}
+              </div>
+              <ul className="px-3 pb-4 space-y-1">
+                {candidateBars.map((bar) => {
+                  const isSelected = selectedBar?.place_id === bar.place_id
+                  return (
+                    <li key={bar.place_id}>
+                      <div
+                        className={`w-full text-left px-3 py-3 rounded-xl border ${
+                          isSelected
+                            ? 'bg-amber-500/10 border-amber-500/30 shadow-sm'
+                            : 'bg-gray-800/40 border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <button
+                            onClick={() => onBarSelect(isSelected ? null : bar)}
+                            className="flex items-start gap-2.5 flex-1 min-w-0 text-left"
+                          >
+                            <span className="flex-shrink-0 w-2 h-2 rounded-full bg-slate-500 mt-2" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-gray-300 text-sm font-medium leading-snug truncate">
+                                {bar.name}
+                              </p>
+                              {bar.vicinity && (
+                                <p className="text-gray-600 text-xs truncate mt-0.5">{bar.vicinity}</p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <StarRating rating={bar.rating} />
+                                <PriceLevel level={bar.price_level} />
+                              </div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => onAddToCrawl(bar)}
+                            className="flex-shrink-0 mt-0.5 px-2 py-0.5 text-xs font-semibold rounded-md text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/15 hover:text-indigo-300 transition-colors"
+                            title="Add to crawl"
+                          >
+                            + Add
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Empty states */}
+      {/* Empty state */}
       {bars.length === 0 && !loading && (
         <div className="flex-1 flex items-center justify-center px-6">
           <p className="text-gray-600 text-sm text-center leading-relaxed">
-            {'Enter a start and end point to plan your bar crawl.'}
+            Enter a start and end point to plan your bar crawl.
           </p>
         </div>
       )}

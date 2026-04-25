@@ -3,39 +3,8 @@ import { useJsApiLoader } from '@react-google-maps/api'
 import Sidebar from './components/Sidebar'
 import Map from './components/Map'
 
-// Defined outside the component so the array reference is stable across renders.
 const LIBRARIES = ['places']
 
-// Minimal polyline decoder — used only for route-order sorting.
-function decodePolyline(encoded) {
-  const points = []
-  let index = 0, lat = 0, lng = 0
-  while (index < encoded.length) {
-    let b, shift = 0, result = 0
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
-    lat += (result & 1) !== 0 ? ~(result >> 1) : result >> 1
-    shift = 0; result = 0
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
-    lng += (result & 1) !== 0 ? ~(result >> 1) : result >> 1
-    points.push({ lat: lat / 1e5, lng: lng / 1e5 })
-  }
-  return points
-}
-
-function sortBarsByRouteOrder(bars, polyline) {
-  const routePoints = decodePolyline(polyline)
-  return [...bars].sort((a, b) => {
-    const idxOf = (bar) =>
-      routePoints.reduce(
-        (best, p, i) => {
-          const d = (bar.lat - p.lat) ** 2 + (bar.lng - p.lng) ** 2
-          return d < best.d ? { i, d } : best
-        },
-        { i: 0, d: Infinity }
-      ).i
-    return idxOf(a) - idxOf(b)
-  })
-}
 
 export default function App() {
   const { isLoaded } = useJsApiLoader({
@@ -43,28 +12,37 @@ export default function App() {
     libraries: LIBRARIES,
   })
 
-  const [route, setRoute] = useState(null)   // { polyline, distance, duration }
+  const [route, setRoute] = useState(null)
   const [bars, setBars] = useState([])
+  const [crawlBars, setCrawlBars] = useState([])
   const [selectedBar, setSelectedBar] = useState(null)
 
   const handleRouteFound = (data) => {
     setRoute(data)
     setBars([])
+    setCrawlBars([])
     setSelectedBar(null)
   }
 
   const handleRouteClear = () => {
     setRoute(null)
     setBars([])
+    setCrawlBars([])
     setSelectedBar(null)
   }
 
   const handleBarsFound = (newBars) => {
-    const sorted = route?.polyline
-      ? sortBarsByRouteOrder(newBars, route.polyline)
-      : newBars
-    setBars(sorted)
+    setBars(newBars)
+    setCrawlBars([])
     setSelectedBar(null)
+  }
+
+  const handleAddToCrawl = (bar) => {
+    setCrawlBars((prev) => [...prev, bar])
+  }
+
+  const handleRemoveFromCrawl = (bar) => {
+    setCrawlBars((prev) => prev.filter((b) => b.place_id !== bar.place_id))
   }
 
   return (
@@ -73,18 +51,24 @@ export default function App() {
         isLoaded={isLoaded}
         route={route}
         bars={bars}
+        crawlBars={crawlBars}
         selectedBar={selectedBar}
         onRouteFound={handleRouteFound}
         onRouteClear={handleRouteClear}
         onBarsFound={handleBarsFound}
         onBarSelect={setSelectedBar}
+        onAddToCrawl={handleAddToCrawl}
+        onRemoveFromCrawl={handleRemoveFromCrawl}
       />
       <Map
         isLoaded={isLoaded}
         route={route}
         bars={bars}
+        crawlBars={crawlBars}
         selectedBar={selectedBar}
         onBarSelect={setSelectedBar}
+        onAddToCrawl={handleAddToCrawl}
+        onRemoveFromCrawl={handleRemoveFromCrawl}
       />
     </div>
   )

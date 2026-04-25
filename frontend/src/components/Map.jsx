@@ -5,7 +5,6 @@ const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' }
 const DEFAULT_CENTER = { lat: 37.7749, lng: -122.4194 }
 const DEFAULT_ZOOM = 13
 
-// Decode a Google-encoded polyline string into [{lat, lng}] path.
 function decodePolyline(encoded) {
   const points = []
   let index = 0, lat = 0, lng = 0
@@ -21,7 +20,7 @@ function decodePolyline(encoded) {
   return points
 }
 
-function buildMarkerIcon(stopNumber, isSelected) {
+function buildCrawlIcon(stopNumber, isSelected) {
   const bg = isSelected ? '#f59e0b' : '#f97316'
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
@@ -37,11 +36,25 @@ function buildMarkerIcon(stopNumber, isSelected) {
   }
 }
 
+function buildCandidateIcon(isSelected) {
+  const bg = isSelected ? '#f59e0b' : '#64748b'
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 26 32">
+      <circle cx="13" cy="13" r="11" fill="${bg}" stroke="white" stroke-width="2"/>
+      <polygon points="13,30 8,21 18,21" fill="${bg}"/>
+    </svg>`.trim()
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new window.google.maps.Size(26, 32),
+    anchor: new window.google.maps.Point(13, 32),
+  }
+}
+
 const MAP_OPTIONS = {
   mapTypeControl: false,
   streetViewControl: false,
   fullscreenControl: true,
-  zoomControlOptions: { position: 3 /* RIGHT_TOP */ },
+  zoomControlOptions: { position: 3 },
   clickableIcons: false,
   styles: [
     { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
@@ -54,11 +67,10 @@ const POLYLINE_STYLE = {
   strokeOpacity: 0.85,
 }
 
-export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect }) {
+export default function Map({ isLoaded, route, bars, crawlBars, selectedBar, onBarSelect, onAddToCrawl, onRemoveFromCrawl }) {
   const mapRef = useRef(null)
   const polylineRef = useRef(null)
 
-  // Memoise so the array reference only changes when the route actually changes.
   const routePath = useMemo(
     () => (route ? decodePolyline(route.polyline) : []),
     [route]
@@ -68,16 +80,11 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
     mapRef.current = map
   }, [])
 
-  // Imperatively manage the polyline so we have guaranteed control over
-  // when it is drawn and when it is removed from the map canvas.
   useEffect(() => {
     if (!isLoaded) return
 
     if (routePath.length === 0) {
-      // Explicitly remove the polyline from the map.
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null)
-      }
+      if (polylineRef.current) polylineRef.current.setMap(null)
       return
     }
 
@@ -88,14 +95,12 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
     polylineRef.current.setMap(mapRef.current)
   }, [routePath, isLoaded])
 
-  // Remove the polyline when the Map component unmounts.
   useEffect(() => {
     return () => {
       if (polylineRef.current) polylineRef.current.setMap(null)
     }
   }, [])
 
-  // Fit bounds to route + bars whenever either changes.
   useEffect(() => {
     if (!mapRef.current || routePath.length === 0) return
     const bounds = new window.google.maps.LatLngBounds()
@@ -104,7 +109,6 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
     mapRef.current.fitBounds(bounds, 60)
   }, [routePath, bars])
 
-  // Pan to a bar when it is selected from the sidebar.
   useEffect(() => {
     if (selectedBar && mapRef.current) {
       mapRef.current.panTo({ lat: selectedBar.lat, lng: selectedBar.lng })
@@ -125,6 +129,9 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
     )
   }
 
+  const crawlIds = new Set(crawlBars.map((b) => b.place_id))
+  const candidateBars = bars.filter((b) => !crawlIds.has(b.place_id))
+
   return (
     <div className="flex-1 h-full">
       <GoogleMap
@@ -135,51 +142,84 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
         onLoad={onMapLoad}
         onClick={() => onBarSelect(null)}
       >
-        {/* Bar markers */}
-        {bars.map((bar, idx) => {
+        {/* Candidate (gray) markers — rendered first so crawl pins appear on top */}
+        {candidateBars.map((bar) => {
           const isSelected = selectedBar?.place_id === bar.place_id
           return (
             <Marker
               key={bar.place_id}
               position={{ lat: bar.lat, lng: bar.lng }}
-              icon={buildMarkerIcon(idx + 1, isSelected)}
-              zIndex={isSelected ? 999 : idx}
+              icon={buildCandidateIcon(isSelected)}
+              zIndex={isSelected ? 500 : 1}
+              onClick={() => onBarSelect(isSelected ? null : bar)}
+            />
+          )
+        })}
+
+        {/* Crawl (orange, numbered) markers */}
+        {crawlBars.map((bar, idx) => {
+          const isSelected = selectedBar?.place_id === bar.place_id
+          return (
+            <Marker
+              key={bar.place_id}
+              position={{ lat: bar.lat, lng: bar.lng }}
+              icon={buildCrawlIcon(idx + 1, isSelected)}
+              zIndex={isSelected ? 999 : 100 + idx}
               onClick={() => onBarSelect(isSelected ? null : bar)}
             />
           )
         })}
 
         {/* Info window for selected bar */}
-        {selectedBar && (
-          <InfoWindowF
-            position={{ lat: selectedBar.lat, lng: selectedBar.lng }}
-            options={{ pixelOffset: new window.google.maps.Size(0, -44) }}
-            onCloseClick={() => onBarSelect(null)}
-          >
-            <div style={{ minWidth: 160, fontFamily: 'Arial, sans-serif' }}>
-              <p style={{ fontWeight: 700, fontSize: 14, margin: '0 0 4px', color: '#111' }}>
-                {selectedBar.name}
-              </p>
-              {selectedBar.vicinity && (
-                <p style={{ fontSize: 12, color: '#555', margin: '0 0 6px' }}>
-                  {selectedBar.vicinity}
+        {selectedBar && (() => {
+          const inCrawl = crawlIds.has(selectedBar.place_id)
+          return (
+            <InfoWindowF
+              position={{ lat: selectedBar.lat, lng: selectedBar.lng }}
+              options={{ pixelOffset: new window.google.maps.Size(0, -44) }}
+              onCloseClick={() => onBarSelect(null)}
+            >
+              <div style={{ minWidth: 160, fontFamily: 'Arial, sans-serif' }}>
+                <p style={{ fontWeight: 700, fontSize: 14, margin: '0 0 4px', color: '#111' }}>
+                  {selectedBar.name}
                 </p>
-              )}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                {selectedBar.rating != null && (
-                  <span style={{ color: '#d97706', fontSize: 12, fontWeight: 600 }}>
-                    ★ {selectedBar.rating.toFixed(1)}
-                  </span>
+                {selectedBar.vicinity && (
+                  <p style={{ fontSize: 12, color: '#555', margin: '0 0 6px' }}>
+                    {selectedBar.vicinity}
+                  </p>
                 )}
-                {selectedBar.price_level != null && (
-                  <span style={{ color: '#059669', fontSize: 12, fontWeight: 600 }}>
-                    {'$'.repeat(Math.max(1, selectedBar.price_level))}
-                  </span>
-                )}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                  {selectedBar.rating != null && (
+                    <span style={{ color: '#d97706', fontSize: 12, fontWeight: 600 }}>
+                      ★ {selectedBar.rating.toFixed(1)}
+                    </span>
+                  )}
+                  {selectedBar.price_level != null && (
+                    <span style={{ color: '#059669', fontSize: 12, fontWeight: 600 }}>
+                      {'$'.repeat(Math.max(1, selectedBar.price_level))}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => inCrawl ? onRemoveFromCrawl(selectedBar) : onAddToCrawl(selectedBar)}
+                  style={{
+                    width: '100%',
+                    padding: '4px 0',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderRadius: 6,
+                    border: `1px solid ${inCrawl ? '#f87171' : '#818cf8'}`,
+                    background: inCrawl ? '#fee2e2' : '#eef2ff',
+                    color: inCrawl ? '#dc2626' : '#4f46e5',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {inCrawl ? '× Remove from Crawl' : '+ Add to Crawl'}
+                </button>
               </div>
-            </div>
-          </InfoWindowF>
-        )}
+            </InfoWindowF>
+          )
+        })()}
       </GoogleMap>
     </div>
   )
