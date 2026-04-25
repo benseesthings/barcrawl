@@ -53,6 +53,12 @@ export default function App() {
     setSelectedBar(null)
   }
 
+  const handleRouteClear = () => {
+    setRoute(null)
+    setBars([])
+    setSelectedBar(null)
+  }
+
   const handleBarsFound = (newBars) => {
     const sorted = route?.polyline
       ? sortBarsByRouteOrder(newBars, route.polyline)
@@ -69,6 +75,7 @@ export default function App() {
         bars={bars}
         selectedBar={selectedBar}
         onRouteFound={handleRouteFound}
+        onRouteClear={handleRouteClear}
         onBarsFound={handleBarsFound}
         onBarSelect={setSelectedBar}
       />

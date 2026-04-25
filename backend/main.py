@@ -111,6 +111,13 @@ async def get_route(request: RouteRequest):
     route = data["routes"][0]
     leg = route["legs"][0]
 
+    MAX_METERS = 8047  # 5 miles
+    if leg["distance"]["value"] > MAX_METERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Route is too long ({leg['distance']['text']}). Please keep your crawl under 5 miles.",
+        )
+
     return {
         "polyline": route["overview_polyline"]["points"],
         "distance": leg["distance"]["text"],

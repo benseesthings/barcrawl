@@ -8,3 +8,17 @@ body,
   height: 100%;
   overflow: hidden;
 }
+
+/* Google Maps added a duplicate close button in recent API versions — hide it */
+.gm-style-iw-chr {
+  display: none !important;
+}
+
+/* Tighten the InfoWindow padding now that the chrome header is gone */
+.gm-style-iw-c {
+  padding: 0 !important;
+}
+.gm-style-iw-d {
+  overflow: hidden !important;
+  padding: 12px 16px 12px 16px !important;
+}

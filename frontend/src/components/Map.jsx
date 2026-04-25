@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { GoogleMap, Polyline, Marker, InfoWindow } from '@react-google-maps/api'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
+import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api'
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' }
 const DEFAULT_CENTER = { lat: 37.7749, lng: -122.4194 }
@@ -47,7 +47,7 @@ const MAP_OPTIONS = {
   ],
 }
 
-const POLYLINE_OPTIONS = {
+const POLYLINE_STYLE = {
   strokeColor: '#6366f1',
   strokeWeight: 5,
   strokeOpacity: 0.85,
@@ -55,20 +55,53 @@ const POLYLINE_OPTIONS = {
 
 export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect }) {
   const mapRef = useRef(null)
-  const routePath = route ? decodePolyline(route.polyline) : []
+  const polylineRef = useRef(null)
+
+  // Memoise so the array reference only changes when the route actually changes.
+  const routePath = useMemo(
+    () => (route ? decodePolyline(route.polyline) : []),
+    [route]
+  )
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map
   }, [])
 
-  // Fit map to route + bar bounds whenever either changes.
+  // Imperatively manage the polyline so we have guaranteed control over
+  // when it is drawn and when it is removed from the map canvas.
+  useEffect(() => {
+    if (!isLoaded) return
+
+    if (routePath.length === 0) {
+      // Explicitly remove the polyline from the map.
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null)
+      }
+      return
+    }
+
+    if (!polylineRef.current) {
+      polylineRef.current = new window.google.maps.Polyline(POLYLINE_STYLE)
+    }
+    polylineRef.current.setPath(routePath)
+    polylineRef.current.setMap(mapRef.current)
+  }, [routePath, isLoaded])
+
+  // Remove the polyline when the Map component unmounts.
+  useEffect(() => {
+    return () => {
+      if (polylineRef.current) polylineRef.current.setMap(null)
+    }
+  }, [])
+
+  // Fit bounds to route + bars whenever either changes.
   useEffect(() => {
     if (!mapRef.current || routePath.length === 0) return
     const bounds = new window.google.maps.LatLngBounds()
     routePath.forEach((p) => bounds.extend(p))
     bars.forEach((b) => bounds.extend({ lat: b.lat, lng: b.lng }))
     mapRef.current.fitBounds(bounds, 60)
-  }, [route, bars])
+  }, [routePath, bars])
 
   // Pan to a bar when it is selected from the sidebar.
   useEffect(() => {
@@ -100,11 +133,6 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
         options={MAP_OPTIONS}
         onLoad={onMapLoad}
       >
-        {/* Walking route polyline */}
-        {routePath.length > 0 && (
-          <Polyline path={routePath} options={POLYLINE_OPTIONS} />
-        )}
-
         {/* Bar markers */}
         {bars.map((bar, idx) => {
           const isSelected = selectedBar?.place_id === bar.place_id

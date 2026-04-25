@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Autocomplete } from '@react-google-maps/api'
 
 const API = 'http://localhost:8000'
@@ -44,6 +44,7 @@ export default function Sidebar({
   bars,
   selectedBar,
   onRouteFound,
+  onRouteClear,
   onBarsFound,
   onBarSelect,
 }) {
@@ -52,6 +53,11 @@ export default function Sidebar({
   const [loadingRoute, setLoadingRoute] = useState(false)
   const [loadingBars, setLoadingBars] = useState(false)
   const [error, setError] = useState('')
+
+  // Clear route whenever either input changes
+  useEffect(() => {
+    onRouteClear()
+  }, [origin, destination]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Autocomplete instance refs
   const acOrigin = useRef(null)
@@ -62,12 +68,12 @@ export default function Sidebar({
 
   const onOriginPlaceChanged = () => {
     const displayText = originInputRef.current?.value
-    if (displayText) setOrigin(displayText)
+    if (displayText) { setOrigin(displayText); if (route) onRouteClear() }
   }
 
   const onDestPlaceChanged = () => {
     const displayText = destInputRef.current?.value
-    if (displayText) setDestination(displayText)
+    if (displayText) { setDestination(displayText); if (route) onRouteClear() }
   }
 
   const handlePlanRoute = async () => {
@@ -136,7 +142,7 @@ export default function Sidebar({
               <input
                 ref={originInputRef}
                 value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
+                onChange={(e) => { setOrigin(e.target.value); if (route) onRouteClear() }}
                 onKeyDown={handleKeyDown}
                 placeholder="e.g. Painted Ladies, SF"
                 className={INPUT_CLASS}
@@ -146,7 +152,7 @@ export default function Sidebar({
             <input
               ref={originInputRef}
               value={origin}
-              onChange={(e) => setOrigin(e.target.value)}
+              onChange={(e) => { setOrigin(e.target.value); if (route) onRouteClear() }}
               onKeyDown={handleKeyDown}
               placeholder="e.g. Painted Ladies, SF"
               className={INPUT_CLASS}
@@ -165,7 +171,7 @@ export default function Sidebar({
               <input
                 ref={destInputRef}
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) => { setDestination(e.target.value); if (route) onRouteClear() }}
                 onKeyDown={handleKeyDown}
                 placeholder="e.g. Marina Green, SF"
                 className={INPUT_CLASS}
@@ -175,7 +181,7 @@ export default function Sidebar({
             <input
               ref={destInputRef}
               value={destination}
-              onChange={(e) => setDestination(e.target.value)}
+              onChange={(e) => { setDestination(e.target.value); if (route) onRouteClear() }}
               onKeyDown={handleKeyDown}
               placeholder="e.g. Marina Green, SF"
               className={INPUT_CLASS}
