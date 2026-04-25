@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Autocomplete } from '@react-google-maps/api'
 
-const API = 'http://localhost:8000'
+const API = 'https://barcrawl-hc93.onrender.com'
 
 const INPUT_CLASS =
   'w-full bg-gray-800 text-white text-sm px-3 py-2 rounded-lg border border-gray-600 focus:border-amber-400 focus:outline-none placeholder-gray-500'
