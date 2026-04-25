@@ -133,6 +133,7 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
         zoom={DEFAULT_ZOOM}
         options={MAP_OPTIONS}
         onLoad={onMapLoad}
+        onClick={() => onBarSelect(null)}
       >
         {/* Bar markers */}
         {bars.map((bar, idx) => {
