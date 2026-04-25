@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react'
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api'
+import { GoogleMap, Marker, InfoWindowF } from '@react-google-maps/api'
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' }
 const DEFAULT_CENTER = { lat: 37.7749, lng: -122.4194 }
@@ -42,6 +42,7 @@ const MAP_OPTIONS = {
   streetViewControl: false,
   fullscreenControl: true,
   zoomControlOptions: { position: 3 /* RIGHT_TOP */ },
+  clickableIcons: false,
   styles: [
     { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
   ],
@@ -149,7 +150,7 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
 
         {/* Info window for selected bar */}
         {selectedBar && (
-          <InfoWindow
+          <InfoWindowF
             position={{ lat: selectedBar.lat, lng: selectedBar.lng }}
             options={{ pixelOffset: new window.google.maps.Size(0, -44) }}
             onCloseClick={() => onBarSelect(null)}
@@ -176,7 +177,7 @@ export default function Map({ isLoaded, route, bars, selectedBar, onBarSelect })
                 )}
               </div>
             </div>
-          </InfoWindow>
+          </InfoWindowF>
         )}
       </GoogleMap>
     </div>
