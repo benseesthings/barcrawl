@@ -50,8 +50,8 @@ export default function Sidebar({
 }) {
   const [origin, setOrigin] = useState('')
   const [destination, setDestination] = useState('')
-  const [loadingRoute, setLoadingRoute] = useState(false)
-  const [loadingBars, setLoadingBars] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [loadingStatus, setLoadingStatus] = useState('')
   const [error, setError] = useState('')
 
   // Clear route whenever either input changes
@@ -78,41 +78,33 @@ export default function Sidebar({
 
   const handlePlanRoute = async () => {
     if (!origin.trim() || !destination.trim()) return
-    setLoadingRoute(true)
+    setLoading(true)
     setError('')
     try {
-      const res = await fetch(`${API}/api/route`, {
+      setLoadingStatus('Planning route…')
+      const routeRes = await fetch(`${API}/api/route`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin: origin.trim(), destination: destination.trim() }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Failed to get route')
-      onRouteFound(data)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoadingRoute(false)
-    }
-  }
+      const routeData = await routeRes.json()
+      if (!routeRes.ok) throw new Error(routeData.detail || 'Failed to get route')
+      onRouteFound(routeData)
 
-  const handleFindBars = async () => {
-    if (!route) return
-    setLoadingBars(true)
-    setError('')
-    try {
-      const res = await fetch(`${API}/api/bars`, {
+      setLoadingStatus('Finding bars…')
+      const barsRes = await fetch(`${API}/api/bars`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ polyline: route.polyline }),
+        body: JSON.stringify({ polyline: routeData.polyline }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Failed to find bars')
-      onBarsFound(data.bars)
+      const barsData = await barsRes.json()
+      if (!barsRes.ok) throw new Error(barsData.detail || 'Failed to find bars')
+      onBarsFound(barsData.bars)
     } catch (e) {
       setError(e.message)
     } finally {
-      setLoadingBars(false)
+      setLoading(false)
+      setLoadingStatus('')
     }
   }
 
@@ -190,39 +182,12 @@ export default function Sidebar({
         </div>
         <button
           onClick={handlePlanRoute}
-          disabled={loadingRoute || !origin.trim() || !destination.trim()}
+          disabled={loading || !origin.trim() || !destination.trim()}
           className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
         >
-          {loadingRoute ? <><Spinner /> Planning…</> : 'Plan Route'}
+          {loading ? <><Spinner /> {loadingStatus}</> : 'Plan Route'}
         </button>
       </div>
-
-      {/* Route summary + Find Bars */}
-      {route && (
-        <div className="px-4 py-3 border-b border-gray-700 space-y-3">
-          <div className="flex items-center gap-4 text-sm">
-            <span className="flex items-center gap-1.5 text-gray-300">
-              <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              {route.distance}
-            </span>
-            <span className="flex items-center gap-1.5 text-gray-300">
-              <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {route.duration}
-            </span>
-          </div>
-          <button
-            onClick={handleFindBars}
-            disabled={loadingBars}
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
-          >
-            {loadingBars ? <><Spinner /> Searching…</> : 'Find Bars Along Route'}
-          </button>
-        </div>
-      )}
 
       {/* Error */}
       {error && (
@@ -238,7 +203,11 @@ export default function Sidebar({
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Crawl Stops — {bars.length} bar{bars.length !== 1 ? 's' : ''}
             </h2>
-            <p className="text-xs text-gray-600 mt-0.5">Ordered by position along route</p>
+            {route && (
+              <p className="text-xs text-gray-500 mt-1">
+                {route.distance} · {route.duration} walking
+              </p>
+            )}
           </div>
           <ul className="px-3 pb-4 space-y-1">
             {bars.map((bar, idx) => {
@@ -283,12 +252,10 @@ export default function Sidebar({
       )}
 
       {/* Empty states */}
-      {bars.length === 0 && !loadingBars && (
+      {bars.length === 0 && !loading && (
         <div className="flex-1 flex items-center justify-center px-6">
           <p className="text-gray-600 text-sm text-center leading-relaxed">
-            {route
-              ? 'Click "Find Bars Along Route" to discover bars on your walk.'
-              : 'Enter a start and end point to plan your bar crawl.'}
+            {'Enter a start and end point to plan your bar crawl.'}
           </p>
         </div>
       )}
