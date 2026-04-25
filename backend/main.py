@@ -152,6 +152,9 @@ async def get_bars(request: BarsRequest):
                 pid = place["place_id"]
                 if pid in seen_ids:
                     continue
+                place_types = place.get("types", [])
+                if "bar" not in place_types:
+                    continue
                 seen_ids.add(pid)
                 loc = place["geometry"]["location"]
                 bars.append(
