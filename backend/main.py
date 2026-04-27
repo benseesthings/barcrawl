@@ -4,16 +4,22 @@ from typing import List
 
 import httpx
 import polyline as polyline_codec
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 load_dotenv()
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Bar Crawl API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -80,7 +86,8 @@ def sample_polyline(encoded: str, interval: float = 200.0) -> List[tuple]:
 
 
 @app.post("/api/route")
-async def get_route(request: RouteRequest):
+@limiter.limit("50/hour")
+async def get_route(request: Request, body: RouteRequest):
     if not GOOGLE_API_KEY:
         raise HTTPException(status_code=500, detail="GOOGLE_API_KEY not configured")
 
@@ -88,8 +95,8 @@ async def get_route(request: RouteRequest):
         resp = await client.get(
             "https://maps.googleapis.com/maps/api/directions/json",
             params={
-                "origin": request.origin,
-                "destination": request.destination,
+                "origin": body.origin,
+                "destination": body.destination,
                 "mode": "walking",
                 "key": GOOGLE_API_KEY,
             },
@@ -111,11 +118,11 @@ async def get_route(request: RouteRequest):
     route = data["routes"][0]
     leg = route["legs"][0]
 
-    MAX_METERS = 4828  # 3 miles
+    MAX_METERS = 8047  # 5 miles
     if leg["distance"]["value"] > MAX_METERS:
         raise HTTPException(
             status_code=400,
-            detail=f"Route is too long ({leg['distance']['text']}). Please keep your crawl under 3 miles.",
+            detail=f"Route is too long ({leg['distance']['text']}). Please keep your crawl under 5 miles.",
         )
 
     return {
@@ -126,11 +133,12 @@ async def get_route(request: RouteRequest):
 
 
 @app.post("/api/bars")
-async def get_bars(request: BarsRequest):
+@limiter.limit("50/hour")
+async def get_bars(request: Request, body: BarsRequest):
     if not GOOGLE_API_KEY:
         raise HTTPException(status_code=500, detail="GOOGLE_API_KEY not configured")
 
-    sample_points = sample_polyline(request.polyline, interval=200.0)
+    sample_points = sample_polyline(body.polyline, interval=200.0)
     seen_ids: set[str] = set()
     bars = []
 
