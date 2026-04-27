@@ -78,6 +78,10 @@ export default function Map({ isLoaded, route, bars, crawlBars, selectedBar, onB
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map
+    setTimeout(() => {
+      window.google.maps.event.trigger(map, 'resize')
+      map.setZoom(window.innerWidth < 768 ? 11 : 13)
+    }, 100)
   }, [])
 
   useEffect(() => {
@@ -133,7 +137,7 @@ export default function Map({ isLoaded, route, bars, crawlBars, selectedBar, onB
   const candidateBars = bars.filter((b) => !crawlIds.has(b.place_id))
 
   return (
-    <div className="flex-1 h-full">
+    <div className="flex-1 h-full w-full">
       <GoogleMap
         mapContainerStyle={MAP_CONTAINER_STYLE}
         center={DEFAULT_CENTER}
