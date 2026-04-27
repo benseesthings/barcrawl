@@ -163,6 +163,9 @@ async def get_bars(request: Request, body: BarsRequest):
                 place_types = place.get("types", [])
                 if "bar" not in place_types:
                     continue
+                # Skip places where restaurant is listed before bar (primarily a restaurant)
+                if "restaurant" in place_types and place_types.index("restaurant") < place_types.index("bar"):
+                    continue
                 seen_ids.add(pid)
                 loc = place["geometry"]["location"]
                 bars.append(
