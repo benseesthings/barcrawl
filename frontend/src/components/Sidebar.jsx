@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Autocomplete } from '@react-google-maps/api'
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -57,27 +57,13 @@ export default function Sidebar({
   const [loadingStatus, setLoadingStatus] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    onRouteClear()
-  }, [origin, destination]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const acOrigin = useRef(null)
+const acOrigin = useRef(null)
   const acDest = useRef(null)
   const originInputRef = useRef(null)
   const destInputRef = useRef(null)
 
-  const onOriginPlaceChanged = () => {
-    const displayText = originInputRef.current?.value
-    if (displayText) { setOrigin(displayText); if (route) onRouteClear() }
-  }
-
-  const onDestPlaceChanged = () => {
-    const displayText = destInputRef.current?.value
-    if (displayText) { setDestination(displayText); if (route) onRouteClear() }
-  }
-
-  const handlePlanRoute = async () => {
-    if (!origin.trim() || !destination.trim()) return
+  const planRoute = async (originVal, destVal) => {
+    if (!originVal.trim() || !destVal.trim()) return
     setLoading(true)
     setError('')
     try {
@@ -85,7 +71,7 @@ export default function Sidebar({
       const routeRes = await fetch(`${API}/api/route`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin: origin.trim(), destination: destination.trim() }),
+        body: JSON.stringify({ origin: originVal.trim(), destination: destVal.trim() }),
       })
       const routeData = await routeRes.json()
       if (!routeRes.ok) throw new Error(routeData.detail || 'Failed to get route')
@@ -108,8 +94,20 @@ export default function Sidebar({
     }
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handlePlanRoute()
+  const onOriginPlaceChanged = () => {
+    const displayText = originInputRef.current?.value
+    if (displayText) {
+      setOrigin(displayText)
+      if (destination.trim()) planRoute(displayText, destination)
+    }
+  }
+
+  const onDestPlaceChanged = () => {
+    const displayText = destInputRef.current?.value
+    if (displayText) {
+      setDestination(displayText)
+      if (origin.trim()) planRoute(origin, displayText)
+    }
   }
 
   const crawlIds = new Set(crawlBars.map((b) => b.place_id))
@@ -149,7 +147,6 @@ export default function Sidebar({
                 ref={originInputRef}
                 value={origin}
                 onChange={(e) => { setOrigin(e.target.value); if (route) onRouteClear() }}
-                onKeyDown={handleKeyDown}
                 placeholder="e.g. Painted Ladies, SF"
                 className={INPUT_CLASS}
               />
@@ -159,7 +156,6 @@ export default function Sidebar({
               ref={originInputRef}
               value={origin}
               onChange={(e) => { setOrigin(e.target.value); if (route) onRouteClear() }}
-              onKeyDown={handleKeyDown}
               placeholder="e.g. Painted Ladies, SF"
               className={INPUT_CLASS}
             />
@@ -178,7 +174,6 @@ export default function Sidebar({
                 ref={destInputRef}
                 value={destination}
                 onChange={(e) => { setDestination(e.target.value); if (route) onRouteClear() }}
-                onKeyDown={handleKeyDown}
                 placeholder="e.g. Marina Green, SF"
                 className={INPUT_CLASS}
               />
@@ -188,19 +183,16 @@ export default function Sidebar({
               ref={destInputRef}
               value={destination}
               onChange={(e) => { setDestination(e.target.value); if (route) onRouteClear() }}
-              onKeyDown={handleKeyDown}
               placeholder="e.g. Marina Green, SF"
               className={INPUT_CLASS}
             />
           )}
         </div>
-        <button
-          onClick={handlePlanRoute}
-          disabled={loading || !origin.trim() || !destination.trim()}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
-        >
-          {loading ? <><Spinner /> {loadingStatus}</> : 'Plan Route'}
-        </button>
+        {loading && (
+          <div className="flex items-center gap-2 text-gray-400 text-sm">
+            <Spinner /> {loadingStatus}
+          </div>
+        )}
       </div>
 
       {/* Error */}
@@ -219,7 +211,7 @@ export default function Sidebar({
             <div className="flex-shrink-0 border-b border-gray-700 overflow-y-auto max-h-64">
               <div className="px-4 pt-4 pb-2">
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+                  <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
                     Your Crawl — {crawlBars.length} stop{crawlBars.length !== 1 ? 's' : ''}
                   </h2>
                   <button
