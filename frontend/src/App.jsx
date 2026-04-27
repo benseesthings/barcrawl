@@ -38,7 +38,13 @@ export default function App() {
   }
 
   const handleAddToCrawl = (bar) => {
-    setCrawlBars((prev) => [...prev, bar])
+    setCrawlBars((prev) => {
+      const updated = [...prev, bar]
+      return updated.sort((a, b) =>
+        bars.findIndex(x => x.place_id === a.place_id) -
+        bars.findIndex(x => x.place_id === b.place_id)
+      )
+    })
   }
 
   const handleRemoveFromCrawl = (bar) => {
