@@ -210,13 +210,13 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Scrollable bar lists */}
+      {/* Bar lists */}
       {bars.length > 0 && (
-        <div className="flex-1 overflow-y-auto">
+        <>
 
-          {/* Your Crawl */}
+          {/* Your Crawl — fixed, does not scroll away */}
           {crawlBars.length > 0 && (
-            <div>
+            <div className="flex-shrink-0 border-b border-gray-700 overflow-y-auto max-h-64">
               <div className="px-4 pt-4 pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
@@ -291,9 +291,9 @@ export default function Sidebar({
             </div>
           )}
 
-          {/* Nearby Bars */}
+          {/* Nearby Bars — scrollable */}
           {candidateBars.length > 0 && (
-            <div>
+            <div className="flex-1 overflow-y-auto">
               <div className="px-4 pt-3 pb-2">
                 <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Nearby Bars — {candidateBars.length} bar{candidateBars.length !== 1 ? 's' : ''}
@@ -350,7 +350,7 @@ export default function Sidebar({
               </ul>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Empty state */}
