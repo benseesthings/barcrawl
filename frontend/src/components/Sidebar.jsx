@@ -56,8 +56,30 @@ export default function Sidebar({
   const [loading, setLoading] = useState(false)
   const [loadingStatus, setLoadingStatus] = useState('')
   const [error, setError] = useState('')
+  const [expanded, setExpanded] = useState(false)
+  const dragStartY = useRef(null)
+  const dragged = useRef(false)
 
-const acOrigin = useRef(null)
+  const onPointerDown = (e) => {
+    dragStartY.current = e.clientY ?? e.touches?.[0]?.clientY
+    dragged.current = false
+  }
+
+  const onPointerUp = (e) => {
+    const endY = e.clientY ?? e.changedTouches?.[0]?.clientY
+    const delta = (dragStartY.current ?? endY) - endY
+    if (Math.abs(delta) > 10) {
+      // drag gesture — snap based on direction
+      setExpanded(delta > 0)
+      dragged.current = true
+    } else {
+      // tap — toggle
+      setExpanded(e => !e)
+    }
+    dragStartY.current = null
+  }
+
+  const acOrigin = useRef(null)
   const acDest = useRef(null)
   const originInputRef = useRef(null)
   const destInputRef = useRef(null)
@@ -125,9 +147,18 @@ const acOrigin = useRef(null)
   }
 
   return (
-    <aside className="w-80 flex-shrink-0 h-full bg-gray-900 text-white flex flex-col overflow-hidden border-r border-gray-700">
-      {/* Header */}
-      <div className="px-5 py-4 bg-gray-800 border-b border-gray-700">
+    <aside className={`w-full md:w-80 flex-shrink-0 bg-gray-900 text-white flex flex-col overflow-hidden border-t md:border-t-0 md:border-r border-gray-700 transition-[height] duration-300 ease-in-out md:h-full ${expanded ? 'h-[85%]' : 'h-[33%]'}`}>
+      {/* Drag handle — mobile only */}
+      <div
+        className="md:hidden flex justify-center items-center py-3 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none"
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+      >
+        <div className="w-10 h-1 bg-gray-600 rounded-full" />
+      </div>
+
+      {/* Header — hidden on mobile to save space */}
+      <div className="hidden md:block px-5 py-4 bg-gray-800 border-b border-gray-700">
         <h1 className="text-xl font-bold text-amber-400 tracking-tight">Bar Crawl</h1>
         <p className="text-xs text-gray-400 mt-0.5">Find bars along your walking route</p>
       </div>
