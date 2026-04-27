@@ -2,6 +2,8 @@
 
 Plan a walking bar crawl between any two points. Enter a start and end address, get a walking route, then discover every bar within 150 m of the path — ordered by your walking direction.
 
+Play with it at https://bens-barcrawl.onrender.com/ or set it up on your machine using below. 
+
 ## Architecture
 
 ```
@@ -9,7 +11,7 @@ frontend/   React + Vite + Tailwind  →  runs on http://localhost:5173
 backend/    Python FastAPI            →  runs on http://localhost:8000
 ```
 
-The frontend renders a Google Map (Maps JavaScript API). The backend calls the Google Directions API and Google Places API server-side, keeping those keys out of the browser.
+The frontend renders a Google Map (Maps JavaScript API). The backend calls the Google Directions API and Google Places API server-side. 
 
 ---
 
